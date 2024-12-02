@@ -2,11 +2,20 @@ org 100h
 
 newline db 0Dh, 0Ah, '$'
 inputMsg db "Choose color: [1] RED, [2] GREEN, [3] BLUE $"
-test1 db "RED $"
-test2 db "GREEN $"
-test3 db "BLUE $"
+redColor db 04h
+greenColor db 02h
+blueColor db 01h
+screenWidth db 80
+screenHeight db 25
 
 start:
+  mov ax, 0003h
+  int 10h
+
+  mov ax, 0000h
+  int 33h
+
+mainLoop:
   lea dx, newline
   mov ah, 09h
   int 21h
@@ -22,30 +31,72 @@ getInput:
   je exit
 
   cmp al, '1'
-  je printRed
+  je selectRed
   cmp al, '2'
-  je printGreen
+  je selectGreen
   cmp al, '3'
-  je printBlue
-  jmp start
+  je selectBlue
+  jmp mainLoop
 
-printRed:
-  lea dx, test1
-  mov ah, 09h
-  int 21h
-  jmp start
+selectRed:
+  mov bl, redColor
+  call mousePaint
+  jmp mainLoop
 
-printGreen:
-  lea dx, test2
-  mov ah, 09h
-  int 21h
-  jmp start
+selectGreen:
+  mov bl, greenColor
+  call mousePaint
+  jmp mainLoop
 
-printBlue:
-  lea dx, test3
-  mov ah, 09h
-  int 21h
-  jmp start
+selectBlue:
+  mov bl, blueColor
+  call mousePaint
+  jmp mainLoop
+
+mousePaint:
+  mov ax, 0001h
+  int 33h
+
+paintLoop:
+  mov ax, 0003h
+  int 33h
+
+  test bx, 1
+  jz paintLoop
+
+  mov ax, cx
+  mov di, ax
+  mov ax, dx
+  mov si, ax
+
+  cmp di, 80
+  jl validCoordX
+  mov di, 79
+validCoordX:
+
+  cmp si, 25
+  jl validCoordY
+  mov si, 24
+validCoordY:
+
+  mov ax, 0000h
+  int 33h
+
+  mov ax, si
+  mov bx, 80
+  mul bx
+  add di, ax
+
+  shl di, 1
+  add di, 1
+
+  mov al, bl
+  mov es, 0B800h
+  mov [es:di], al
+
+  jmp mainLoop
 
 exit:
+  mov ax, 0003h
+  int 10h
   int 20h
